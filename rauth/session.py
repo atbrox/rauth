@@ -164,31 +164,32 @@ class OAuth1Session(RauthSession):
                                 oauth_params,
                                 req_kwargs)
 
-        if header_auth:
-            header = self._get_auth_header(oauth_params, realm)
-            req_kwargs['headers'].update({'Authorization': header})
-        elif entity_method:
-            req_kwargs['data'] = req_kwargs.get('data') or {}
+        if not 'oauth_signature' in url:  # HACK: prevent double signing
+            if header_auth:
+                header = self._get_auth_header(oauth_params, realm)
+                req_kwargs['headers'].update({'Authorization': header})
+            elif entity_method:
+                req_kwargs['data'] = req_kwargs.get('data') or {}
 
-            # If we have a urlencoded entity-body we should pass the OAuth
-            # parameters on this body. However, if we do not, then we need to
-            # pass these over the request URI, i.e. on params.
-            #
-            # See:
-            #
-            #   http://tools.ietf.org/html/rfc5849#section-3.5.2
-            #
-            # and:
-            #
-            #   http://tools.ietf.org/html/rfc5849#section-3.5.3
-            if form_urlencoded:
-                req_kwargs['data'].update(oauth_params)
+                # If we have a urlencoded entity-body we should pass the OAuth
+                # parameters on this body. However, if we do not, then we need to
+                # pass these over the request URI, i.e. on params.
+                #
+                # See:
+                #
+                #   http://tools.ietf.org/html/rfc5849#section-3.5.2
+                #
+                # and:
+                #
+                #   http://tools.ietf.org/html/rfc5849#section-3.5.3
+                if form_urlencoded:
+                    req_kwargs['data'].update(oauth_params)
+                else:
+                    req_kwargs.setdefault('params', {})
+                    req_kwargs['params'].update(oauth_params)
             else:
                 req_kwargs.setdefault('params', {})
                 req_kwargs['params'].update(oauth_params)
-        else:
-            req_kwargs.setdefault('params', {})
-            req_kwargs['params'].update(oauth_params)
 
         return super(OAuth1Session, self).request(method, url, **req_kwargs)
 
